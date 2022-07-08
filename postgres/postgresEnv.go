@@ -165,6 +165,10 @@ func (pc *postgresClient) GetUserData(email string) (uint64, string, error) {
 	err := row.Scan(&id, password)
 
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, "", err
+		}
+
 		return 0, "", fmt.Errorf("postgres cannot return user's data (email = %v); err: %v", email, err)
 	}
 
