@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v4"
@@ -20,6 +21,8 @@ type PostgresHandler interface {
 	GetCurrencies() (map[string]float64, error)
 	GetUsersNum() (int, error)
 	UpdateCurrency(currency string, value float64) error
+	GetCurrencyAmount(currency string) (float64, error)
+	UpdateCurrencyAmount(userID uint64, currency string, value float64) error
 }
 
 type postgresClient struct {
@@ -87,4 +90,44 @@ func (pc *postgresClient) GetUsersNum() (int, error) {
 	}
 
 	return res, nil
+}
+
+func (pc *postgresClient) GetCurrencyAmount(currency string) (float64, error) {
+	amount := float64(0)
+	err := pc.connection.QueryRow(
+		context.Background(),
+		`SELECT SUM(amount)
+		 FROM users_money
+		 WHERE currency = $1`,
+		currency,
+	).Scan(&amount)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, err
+		}
+
+		return 0, fmt.Errorf("postgres cannot return amount of the currency %v; err: %v", currency, err)
+	}
+
+	return amount, nil
+}
+
+func (pc *postgresClient) UpdateCurrencyAmount(userID uint64, currency string, value float64) error {
+	_, err := pc.connection.Exec(
+		context.Background(),
+		`UPDATE users_money
+		 SET amount = $1
+		 WHERE user_id = $2
+		 AND currency = $3`,
+		value,
+		userID,
+		currency,
+	)
+
+	if err != nil {
+		return fmt.Errorf("cannot update user's (id = %v) currency (%v); err: %v", userID, currency, err)
+	}
+
+	return nil
 }
