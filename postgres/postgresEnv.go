@@ -23,7 +23,8 @@ type PostgresHandler interface {
 	UpdateCurrency(currency string, value float64) error
 	GetCurrencyAmount(currency string) (float64, error)
 	UpdateCurrencyAmount(userID uint64, currency string, value float64) error
-	UpdateUserInfo(email, password string) error
+	AddUser(email, password string) error
+	GetUserData(email string) (uint64, string, error)
 }
 
 type postgresClient struct {
@@ -133,15 +134,11 @@ func (pc *postgresClient) UpdateCurrencyAmount(userID uint64, currency string, v
 	return nil
 }
 
-func (pc *postgresClient) UpdateUserInfo(email, password string) error {
+func (pc *postgresClient) AddUser(email, password string) error {
 	_, err := pc.connection.Exec(
 		context.Background(),
 		`INSERT INTO users (email, password)
-		 VALUES($1, $2)
-		 ON CONFLICT 
-		 DO
-			UPDATE SET email = $1
-					   password = $2`,
+		 VALUES($1, $2)`,
 		email,
 		password,
 	)
@@ -151,4 +148,25 @@ func (pc *postgresClient) UpdateUserInfo(email, password string) error {
 	}
 
 	return nil
+}
+
+func (pc *postgresClient) GetUserData(email string) (uint64, string, error) {
+	id := uint64(0)
+	password := ""
+
+	row := pc.connection.QueryRow(
+		context.Background(),
+		`SELECT id, password 
+		 FROM users 
+		 WHERE email = $1`,
+		email,
+	)
+
+	err := row.Scan(&id, password)
+
+	if err != nil {
+		return 0, "", fmt.Errorf("postgres cannot return user's data (email = %v); err: %v", email, err)
+	}
+
+	return id, email, nil
 }
