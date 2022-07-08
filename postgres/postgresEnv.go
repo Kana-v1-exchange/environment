@@ -23,6 +23,7 @@ type PostgresHandler interface {
 	UpdateCurrency(currency string, value float64) error
 	GetCurrencyAmount(currency string) (float64, error)
 	UpdateCurrencyAmount(userID uint64, currency string, value float64) error
+	UpdateUserInfo(email, password string) error
 }
 
 type postgresClient struct {
@@ -127,6 +128,26 @@ func (pc *postgresClient) UpdateCurrencyAmount(userID uint64, currency string, v
 
 	if err != nil {
 		return fmt.Errorf("cannot update user's (id = %v) currency (%v); err: %v", userID, currency, err)
+	}
+
+	return nil
+}
+
+func (pc *postgresClient) UpdateUserInfo(email, password string) error {
+	_, err := pc.connection.Exec(
+		context.Background(),
+		`INSERT INTO users (email, password)
+		 VALUES($1, $2)
+		 ON CONFLICT 
+		 DO
+			UPDATE SET email = $1
+					   password = $2`,
+		email,
+		password,
+	)
+
+	if err != nil {
+		return fmt.Errorf("cannot update user's (email: %v, password: %v) data; err: %v", email, password, err)
 	}
 
 	return nil
