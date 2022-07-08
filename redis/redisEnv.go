@@ -1,4 +1,4 @@
-package enviroment
+package redis
 
 import (
 	"github.com/Kana-v1-exchange/enviroment/helpers"
