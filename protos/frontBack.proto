@@ -1,0 +1,47 @@
+syntax="proto3";
+
+option go_package="handlers/serverHandler";
+
+message User {
+    int64 id = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message Buy {
+    float amount = 1;
+    string currency = 2;
+    int64 userID = 3;
+}
+
+message CurrencyValue {
+    float value = 1;
+    string currency = 2;
+}
+
+message EmptyMsg{}
+
+message DefaultStringMsg {
+    string message = 1;
+}
+
+message DefaultFloatMsg {
+    float value = 1;
+}
+
+message GetCurrenciesResponse {
+    repeated CurrencyValue CurrencyValue = 1;
+}
+
+message GetCurrencyValueRequest {
+    string currency = 1;
+}
+
+service DashboardService {
+    rpc SignIn(User) returns (DefaultStringMsg);
+    rpc SignUp(User) returns (DefaultStringMsg);
+    rpc GetAllCurrencies(EmptyMsg) returns (GetCurrenciesResponse);
+    rpc BuyCurrency(CurrencyValue) returns (DefaultStringMsg);
+    rpc SellCurrency(CurrencyValue) returns (DefaultStringMsg);
+    rpc GetCurrencyValue(DefaultStringMsg) returns (stream DefaultFloatMsg);
+}

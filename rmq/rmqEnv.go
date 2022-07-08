@@ -15,6 +15,7 @@ type RMQSettings struct {
 
 type RmqHandler interface {
 	Write(msg string) error
+	Read() (<-chan amqp.Delivery, error)
 }
 
 type rmqClient struct {
@@ -68,4 +69,22 @@ func (rc *rmqClient) Write(msg string) error {
 	}
 
 	return nil
+}
+
+func (rc *rmqClient) Read() (<-chan amqp.Delivery, error) {
+	msgs, err := rc.ch.Consume(
+		"exchanges",
+		"",
+		true,
+		false,
+		false,
+		true,
+		amqp.Table{},
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("cannot get messages from the queue 'exchanges'; err: %v", err)
+	}
+
+	return msgs, nil
 }
