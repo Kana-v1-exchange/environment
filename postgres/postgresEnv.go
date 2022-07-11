@@ -22,9 +22,12 @@ type PostgresHandler interface {
 	GetUsersNum() (int, error)
 	UpdateCurrency(currency string, value float64) error
 	GetCurrencyAmount(currency string) (float64, error)
+	GetCurrencyValue(currency string) (float64, error)
 	UpdateCurrencyAmount(userID uint64, currency string, value float64) error
 	AddUser(email, password string) error
 	GetUserData(email string) (uint64, string, error)
+	SendCurrency(sellerID, buyerID uint64, currency string, value float64) error
+	FindSeller(currency string, value float64) (uint64, error)
 }
 
 type postgresClient struct {
@@ -115,6 +118,24 @@ func (pc *postgresClient) GetCurrencyAmount(currency string) (float64, error) {
 	return amount, nil
 }
 
+func (pc *postgresClient) GetCurrencyValue(currency string) (float64, error) {
+	row := pc.connection.QueryRow(
+		context.Background(),
+		`SELECT amount 
+		 FROM currencies 
+		 WHERE currency = $1`,
+		currency,
+	)
+
+	value := float64(0)
+	err := row.Scan(&value)
+	if err != nil {
+		return 0, fmt.Errorf("cannot get currencies'(%v) value; err: %v", currency, err)
+	}
+
+	return value, nil
+}
+
 func (pc *postgresClient) UpdateCurrencyAmount(userID uint64, currency string, value float64) error {
 	_, err := pc.connection.Exec(
 		context.Background(),
@@ -173,4 +194,106 @@ func (pc *postgresClient) GetUserData(email string) (uint64, string, error) {
 	}
 
 	return id, email, nil
+}
+
+func (pc *postgresClient) FindSeller(currency string, value float64) (uint64, error) {
+	sellerID := uint64(0)
+	rows := pc.connection.QueryRow(
+		context.Background(),
+		`SELECT user_id 
+		 FROM users_money 
+		 WHERE currency = $1
+		 AND amount >= $2`,
+		currency,
+		value,
+	)
+
+	err := rows.Scan(&sellerID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, fmt.Errorf("nobody has %v %v", value, currency)
+		}
+
+		return 0, err
+	}
+
+	return sellerID, nil
+}
+
+func (pc *postgresClient) SendCurrency(sellerID, buyerID uint64, currency string, value float64) error {
+	tx, err := pc.connection.Begin(context.Background())
+
+	if err != nil {
+		return fmt.Errorf("cannot start transaction; err %v", err)
+	}
+
+	amount := float64(0)
+
+	rows, err := tx.Query(
+		context.Background(),
+		`SELECT amount 
+		 FROM users_money 
+		 WHERE currency = $1
+		 AND user_id = $3
+		 LIMIT 1`,
+		currency,
+		sellerID,
+	)
+
+	if err != nil {
+		tx.Rollback(context.Background())
+
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("%w; user with id %v does not have %v %v", sql.ErrNoRows, sellerID, value, currency)
+		}
+
+		return fmt.Errorf("cannot get %v %v from the users_money table; err: %v", value, currency, err)
+	}
+
+	for rows.Next() {
+		rows.Scan(&sellerID, amount)
+	}
+
+	_, err = tx.Exec(
+		context.Background(),
+		`UPDATE users_money
+		 SET amount = $1
+		 WHERE user_id = $2
+		 AND currency = $3`,
+		amount-value,
+		sellerID,
+		currency,
+	)
+
+	if err != nil {
+		tx.Rollback(context.Background())
+		return fmt.Errorf("cannot sell user's (id = %v) currency(%s); err: %v", sellerID, currency, err)
+	}
+
+	_, err = tx.Exec(
+		context.Background(),
+		`UPDATE users_money
+		 SET amount = (
+			SELECT amount 
+			FROM users_money 
+			WHERE user_id = $1
+			AND currency = $2
+		 ) + $3
+		 WHERE user_id = $1`,
+		buyerID,
+		currency,
+		value,
+	)
+
+	if err != nil {
+		tx.Rollback(context.Background())
+		return fmt.Errorf("cannot update currency amount; err: %v", err)
+	}
+
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return fmt.Errorf("cannot rollback transaction; err: %v", err)
+	}
+
+	return nil
 }

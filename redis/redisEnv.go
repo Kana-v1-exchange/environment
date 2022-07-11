@@ -1,9 +1,9 @@
 package redis
 
 import (
-	"github.com/Kana-v1-exchange/enviroment/helpers"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-redis/redis/v9"
 )
@@ -20,6 +20,7 @@ type RedisHandler interface {
 	Remove(keys ...string) error
 
 	AddOperation(currency string, price int) error
+	GetOrUpdateUserToken(userID uint64, expiresAt *time.Time) (time.Time, error)
 }
 
 type redisClient struct {
@@ -73,7 +74,7 @@ func (rc *redisClient) Remove(keys ...string) error {
 func (rc *redisClient) AddOperation(currency string, price int) error {
 	err := rc.client.LPush(
 		context.Background(),
-		currency+helpers.RedisCurrencyOperationsSuffix,
+		currency+RedisCurrencyOperationsSuffix,
 		price,
 	)
 
@@ -82,4 +83,25 @@ func (rc *redisClient) AddOperation(currency string, price int) error {
 	}
 
 	return nil
+}
+
+func (rc *redisClient) GetOrUpdateUserToken(userID uint64, expiresAt *time.Time) (time.Time, error) {
+	curTime, err := rc.Get(fmt.Sprintf("%v%v", userID, UserTokenSuffix))
+	if err != nil {
+		return time.Now(), fmt.Errorf("cannot get user's (id = %v) expiresAt time; err: %v", userID, err)
+	}
+
+	if expiresAt != nil {
+		err = rc.Set(fmt.Sprintf("%v%v", userID, UserTokenSuffix), expiresAt.String())
+		if err != nil {
+			return time.Now(), fmt.Errorf("cannot set user's (id = %v) expiresAt time; err: %v", userID, err)
+		}
+	}
+
+	curTokenExpiresAt, err := time.Parse(time.RFC3339, curTime)
+	if err != nil {
+		return time.Now(), fmt.Errorf("cannot parse time %v as time.RFC3339; err: %v", curTime, err)
+	}
+
+	return curTokenExpiresAt, nil
 }

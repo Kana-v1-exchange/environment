@@ -1,6 +1,6 @@
 syntax="proto3";
 
-option go_package="handlers/serverHandler";
+option go_package="serverHandler/";
 
 message User {
     int64 id = 1;
@@ -17,6 +17,11 @@ message Buy {
 message CurrencyValue {
     float value = 1;
     string currency = 2;
+}
+
+message SellOperation {
+    int64 userID = 1;
+    CurrencyValue CurrencyValue = 2;
 }
 
 message EmptyMsg{}
@@ -41,7 +46,7 @@ service DashboardService {
     rpc SignIn(User) returns (DefaultStringMsg);
     rpc SignUp(User) returns (DefaultStringMsg);
     rpc GetAllCurrencies(EmptyMsg) returns (GetCurrenciesResponse);
-    rpc BuyCurrency(CurrencyValue) returns (DefaultStringMsg);
-    rpc SellCurrency(CurrencyValue) returns (DefaultStringMsg);
+    rpc BuyCurrency(SellOperation) returns (DefaultStringMsg);
+    rpc SellCurrency(SellOperation) returns (DefaultStringMsg);
     rpc GetCurrencyValue(DefaultStringMsg) returns (stream DefaultFloatMsg);
 }
