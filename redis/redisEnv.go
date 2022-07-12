@@ -18,6 +18,7 @@ type RedisHandler interface {
 	Set(key, value string) error
 	Get(key string) (string, error)
 	Remove(keys ...string) error
+	Increment(keys ...string) error
 
 	AddOperation(currency string, price int) error
 	GetOrUpdateUserToken(userID uint64, expiresAt *time.Time) (time.Time, error)
@@ -69,6 +70,22 @@ func (rc *redisClient) Remove(keys ...string) error {
 	}
 
 	return nil
+}
+
+func (rc *redisClient) Increment(keys ...string) error {
+	err := error(nil)
+	for _, key := range keys {
+		internalErr := rc.client.Incr(context.Background(), key)
+		if internalErr != nil {
+			if err == nil {
+				err = fmt.Errorf("cannot increment value by the key %v", key)
+			} else {
+				err = fmt.Errorf("%v; cannot increment value by the key %v", err, key)
+			}
+		}
+	}
+
+	return err
 }
 
 func (rc *redisClient) AddOperation(currency string, price int) error {

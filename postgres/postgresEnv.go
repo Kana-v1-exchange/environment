@@ -26,6 +26,7 @@ type PostgresHandler interface {
 	UpdateCurrencyAmount(userID uint64, currency string, value float64) error
 	AddUser(email, password string) error
 	GetUserData(email string) (uint64, string, error)
+	GetUserMoney(userID uint64, currency string) (float64, error)
 	SendCurrency(sellerID, buyerID uint64, currency string, value float64) error
 	FindSeller(currency string, value float64) (uint64, error)
 }
@@ -194,6 +195,29 @@ func (pc *postgresClient) GetUserData(email string) (uint64, string, error) {
 	}
 
 	return id, email, nil
+}
+
+func (pc *postgresClient) GetUserMoney(userID uint64, currency string) (float64, error) {
+	rows := pc.connection.QueryRow(
+		context.Background(),
+		`SELECT amount 
+		 FROM users_money
+		 WHERE user_id = $1`,
+		userID,
+	)
+
+	amount := float64(0)
+
+	err := rows.Scan(&amount)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return 0, err
+		}
+
+		return 0, fmt.Errorf("postgres cannot scan user's (id = %v) amount of the currency (%v); err: %v", userID, currency, err)
+	}
+
+	return amount, nil
 }
 
 func (pc *postgresClient) FindSeller(currency string, value float64) (uint64, error) {
