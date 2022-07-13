@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -75,10 +76,10 @@ func (rc *redisClient) Remove(keys ...string) error {
 func (rc *redisClient) Increment(keys ...string) error {
 	err := error(nil)
 	for _, key := range keys {
-		internalErr := rc.client.Incr(context.Background(), key)
+		internalErr := rc.client.Incr(context.Background(), key).Err()
 		if internalErr != nil {
 			if err == nil {
-				err = fmt.Errorf("cannot increment value by the key %v", key)
+				err = fmt.Errorf("cannot increment value by the key %v; err: %v", key, internalErr)
 			} else {
 				err = fmt.Errorf("%v; cannot increment value by the key %v", err, key)
 			}
@@ -105,20 +106,29 @@ func (rc *redisClient) AddOperation(currency string, price int) error {
 func (rc *redisClient) GetOrUpdateUserToken(userID uint64, expiresAt *time.Time) (time.Time, error) {
 	curTime, err := rc.Get(fmt.Sprintf("%v%v", userID, UserTokenSuffix))
 	if err != nil {
-		return time.Now(), fmt.Errorf("cannot get user's (id = %v) expiresAt time; err: %v", userID, err)
+		errMsg := fmt.Sprintf("cannot get user's (id = %v) expiresAt time; err: %v", userID, err)
+
+		if expiresAt == nil {
+			return time.Now(), errors.New(errMsg)
+		}
 	}
 
 	if expiresAt != nil {
-		err = rc.Set(fmt.Sprintf("%v%v", userID, UserTokenSuffix), expiresAt.String())
+		err = rc.Set(fmt.Sprintf("%v%v", userID, UserTokenSuffix), expiresAt.Format(time.RFC3339))
 		if err != nil {
 			return time.Now(), fmt.Errorf("cannot set user's (id = %v) expiresAt time; err: %v", userID, err)
 		}
 	}
 
-	curTokenExpiresAt, err := time.Parse(time.RFC3339, curTime)
-	if err != nil {
-		return time.Now(), fmt.Errorf("cannot parse time %v as time.RFC3339; err: %v", curTime, err)
+	if curTime != "" {
+
+		curTokenExpiresAt, err := time.Parse(time.RFC3339, curTime)
+		if err != nil {
+			return time.Now(), fmt.Errorf("cannot parse time %v as time.RFC3339; err: %v", curTime, err)
+		}
+		return curTokenExpiresAt, nil
 	}
 
-	return curTokenExpiresAt, nil
+	return time.Now(), nil
+
 }

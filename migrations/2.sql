@@ -10,11 +10,8 @@ CREATE TABLE users (
 );
 
 CREATE TABLE users_money(
-    id INT PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(id) NOT NULL,
     currency VARCHAR(255),
-    amount FLOAT
+    amount FLOAT -- INTEGER?
 );
-
-
-
