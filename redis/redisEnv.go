@@ -21,7 +21,7 @@ type RedisHandler interface {
 	Remove(keys ...string) error
 	Increment(keys ...string) error
 
-	AddOperation(currency string, price int) error
+	AddOperation(currency string, price float64) error
 	GetOrUpdateUserToken(userID uint64, expiresAt *time.Time) (time.Time, error)
 }
 
@@ -89,7 +89,7 @@ func (rc *redisClient) Increment(keys ...string) error {
 	return err
 }
 
-func (rc *redisClient) AddOperation(currency string, price int) error {
+func (rc *redisClient) AddOperation(currency string, price float64) error {
 	err := rc.client.LPush(
 		context.Background(),
 		currency+RedisCurrencyOperationsSuffix,
