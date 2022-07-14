@@ -76,8 +76,10 @@ func (pc *postgresClient) GetCurrencies() (map[string]float64, error) {
 func (pc *postgresClient) UpdateCurrency(currency string, value float64) error {
 	_, err := pc.connection.Exec(context.Background(),
 		`UPDATE currencies
-		 SET value = $1`,
-		value)
+		 SET value = $1
+		 WHERE currency = $2`,
+		value,
+		currency)
 
 	if err != nil {
 		return fmt.Errorf("postgres can not update currency %v to the new value %v; err: %v", currency, value, err)

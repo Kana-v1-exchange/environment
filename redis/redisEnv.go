@@ -20,6 +20,8 @@ type RedisHandler interface {
 	Get(key string) (string, error)
 	Remove(keys ...string) error
 	Increment(keys ...string) error
+	AddToList(key string, values ...string) error
+	GetList(key string) ([]string, error)
 
 	AddOperation(currency string, price float64) error
 	GetOrUpdateUserToken(userID uint64, expiresAt *time.Time) (time.Time, error)
@@ -54,10 +56,37 @@ func (rc *redisClient) Set(key string, value string) error {
 	return nil
 }
 
+func (rc *redisClient) AddToList(key string, values ...string) error {
+	err := rc.client.LPush(context.Background(), key, values).Err()
+
+	if err != nil {
+		return fmt.Errorf("redis cannot set value(%v) with key (%v); err: %v", values, key, err)
+	}
+
+	return nil
+}
+
+func (rc *redisClient) GetList(key string) ([]string, error) {
+	values, err := rc.client.LRange(context.Background(), key, 0, -1).Result()
+
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, err
+		}
+
+		return nil, fmt.Errorf("redis cannot return value with key %v; err: %v", key, err)
+	}
+	return values, nil
+}
+
 func (rc *redisClient) Get(key string) (string, error) {
 	val, err := rc.client.Get(context.Background(), key).Result()
 
 	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return "", err
+		}
+
 		return "", fmt.Errorf("redis cannot return value with key %v; err: %v", key, err)
 	}
 

@@ -38,7 +38,7 @@ func (rmqS *RMQSettings) Connect() RmqHandler {
 		"exchanges",
 		true,
 		false,
-		true,
+		false,
 		false,
 		nil,
 	)
@@ -55,7 +55,7 @@ func (rmqS *RMQSettings) Connect() RmqHandler {
 func (rc *rmqClient) Write(msg string) error {
 	err := rc.ch.Publish(
 		"",
-		"",
+		"exchanges",
 		false,
 		false,
 		amqp.Publishing{
