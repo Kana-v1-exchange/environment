@@ -31,6 +31,12 @@ services:
       - 6379:6379
     env_file: 
      - envs/.env.redis
+  
+  # proxy:
+  #   container_name: proxy
+  #   build: proxy/
+  #   ports:
+  #    - 8000:8000
 
 volumes:
   redis:
