@@ -4,8 +4,8 @@
 cd protos 
 mkdir serverHandler
 protoc --go_out=serverHandler/ --go_opt=paths=source_relative \
---go-grpc_out=serverHandle/ \
- --go-grpc_opt=paths=source_relative \
+--go-grpc_out=serverHandler/ \
+--go-grpc_opt=paths=source_relative \
 server_handler.proto
 
 #frontend

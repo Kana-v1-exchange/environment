@@ -28,6 +28,8 @@ type DashboardServiceClient interface {
 	BuyCurrency(ctx context.Context, in *SellOperation, opts ...grpc.CallOption) (*DefaultStringMsg, error)
 	SellCurrency(ctx context.Context, in *SellOperation, opts ...grpc.CallOption) (*DefaultStringMsg, error)
 	GetCurrencyValue(ctx context.Context, in *DefaultStringMsg, opts ...grpc.CallOption) (DashboardService_GetCurrencyValueClient, error)
+	GetUserMoney(ctx context.Context, in *EmptyMsg, opts ...grpc.CallOption) (*GetCurrenciesResponse, error)
+	GetUserHistory(ctx context.Context, in *EmptyMsg, opts ...grpc.CallOption) (*GetUserHistoryResponse, error)
 }
 
 type dashboardServiceClient struct {
@@ -115,6 +117,24 @@ func (x *dashboardServiceGetCurrencyValueClient) Recv() (*DefaultFloatMsg, error
 	return m, nil
 }
 
+func (c *dashboardServiceClient) GetUserMoney(ctx context.Context, in *EmptyMsg, opts ...grpc.CallOption) (*GetCurrenciesResponse, error) {
+	out := new(GetCurrenciesResponse)
+	err := c.cc.Invoke(ctx, "/serverHandler.DashboardService/GetUserMoney", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dashboardServiceClient) GetUserHistory(ctx context.Context, in *EmptyMsg, opts ...grpc.CallOption) (*GetUserHistoryResponse, error) {
+	out := new(GetUserHistoryResponse)
+	err := c.cc.Invoke(ctx, "/serverHandler.DashboardService/GetUserHistory", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DashboardServiceServer is the server API for DashboardService service.
 // All implementations must embed UnimplementedDashboardServiceServer
 // for forward compatibility
@@ -125,6 +145,8 @@ type DashboardServiceServer interface {
 	BuyCurrency(context.Context, *SellOperation) (*DefaultStringMsg, error)
 	SellCurrency(context.Context, *SellOperation) (*DefaultStringMsg, error)
 	GetCurrencyValue(*DefaultStringMsg, DashboardService_GetCurrencyValueServer) error
+	GetUserMoney(context.Context, *EmptyMsg) (*GetCurrenciesResponse, error)
+	GetUserHistory(context.Context, *EmptyMsg) (*GetUserHistoryResponse, error)
 	mustEmbedUnimplementedDashboardServiceServer()
 }
 
@@ -149,6 +171,12 @@ func (UnimplementedDashboardServiceServer) SellCurrency(context.Context, *SellOp
 }
 func (UnimplementedDashboardServiceServer) GetCurrencyValue(*DefaultStringMsg, DashboardService_GetCurrencyValueServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetCurrencyValue not implemented")
+}
+func (UnimplementedDashboardServiceServer) GetUserMoney(context.Context, *EmptyMsg) (*GetCurrenciesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserMoney not implemented")
+}
+func (UnimplementedDashboardServiceServer) GetUserHistory(context.Context, *EmptyMsg) (*GetUserHistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserHistory not implemented")
 }
 func (UnimplementedDashboardServiceServer) mustEmbedUnimplementedDashboardServiceServer() {}
 
@@ -274,6 +302,42 @@ func (x *dashboardServiceGetCurrencyValueServer) Send(m *DefaultFloatMsg) error 
 	return x.ServerStream.SendMsg(m)
 }
 
+func _DashboardService_GetUserMoney_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyMsg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DashboardServiceServer).GetUserMoney(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/serverHandler.DashboardService/GetUserMoney",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DashboardServiceServer).GetUserMoney(ctx, req.(*EmptyMsg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DashboardService_GetUserHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmptyMsg)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DashboardServiceServer).GetUserHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/serverHandler.DashboardService/GetUserHistory",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DashboardServiceServer).GetUserHistory(ctx, req.(*EmptyMsg))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DashboardService_ServiceDesc is the grpc.ServiceDesc for DashboardService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -300,6 +364,14 @@ var DashboardService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SellCurrency",
 			Handler:    _DashboardService_SellCurrency_Handler,
+		},
+		{
+			MethodName: "GetUserMoney",
+			Handler:    _DashboardService_GetUserMoney_Handler,
+		},
+		{
+			MethodName: "GetUserHistory",
+			Handler:    _DashboardService_GetUserHistory_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

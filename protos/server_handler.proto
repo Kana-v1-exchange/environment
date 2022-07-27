@@ -23,7 +23,10 @@ message CurrencyValue {
 
 message SellOperation {
     int64 userID = 1;
-    CurrencyValue CurrencyValue = 2;
+    string currency = 2;
+    float floorPrice = 3;
+    float ceilPrice = 4;
+    float amount = 5;
 }
 
 message EmptyMsg{}
@@ -44,6 +47,17 @@ message GetCurrencyValueRequest {
     string currency = 1;
 }
 
+message TransactionData {
+    string time = 1;
+    string currency = 2;
+    float price = 3;
+    float amount = 4;
+}
+
+message GetUserHistoryResponse {
+    repeated TransactionData TransactionData = 1;
+}
+
 service DashboardService {
     rpc SignIn(User) returns (DefaultStringMsg);
     rpc SignUp(User) returns (DefaultStringMsg);
@@ -51,4 +65,6 @@ service DashboardService {
     rpc BuyCurrency(SellOperation) returns (DefaultStringMsg);
     rpc SellCurrency(SellOperation) returns (DefaultStringMsg);
     rpc GetCurrencyValue(DefaultStringMsg) returns (stream DefaultFloatMsg);
+    rpc GetUserMoney(EmptyMsg) returns (GetCurrenciesResponse);
+    rpc GetUserHistory(EmptyMsg) returns (GetUserHistoryResponse);
 }
