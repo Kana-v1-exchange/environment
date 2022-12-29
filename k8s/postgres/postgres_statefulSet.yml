@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-statefulset
+  namespace: exchange
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  serviceName: postgres-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /data
+        - name: postgres-migrations
+          mountPath: /tmp/migrations
+        env:
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: exchange-secrets
+                key: REDIS_PASSWORD
+          - name: PGDATA
+            value: /data/pgdata
+      volumes:
+        - name: postgres-migrations
+          hostPath: # on the M1 processors k8s used through the VM so you gotta use 'minikube mount' firstly to not to get an empty folder
+            path: /Users/kana/Projects/Nix/exchange/enviroment/migrations/
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 50Mi

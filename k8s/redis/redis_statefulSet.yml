@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-statefulset
+  namespace: exchange
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  serviceName: redis-service
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      initContainers:
+        - name: init-redis
+          image: redis:latest
+          env:
+          - name: REDIS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: exchange-secrets
+                key: REDIS_PASSWORD
+          command: 
+          - bash
+          - "-c"
+          - |
+            set -ex
+
+            # Generate redis server-id from pod ordinal index.
+            [[ `hostname` =~ -([0-9]+)$ ]] || exit 1
+            ordinal=${BASH_REMATCH[1]}
+            # Copy appropriate redis config files from redis-config to respective directories.
+            if [[ $ordinal -eq 0 ]]; then
+              cp /tmp/redis-preconfig/master.conf /etc/redis-config.conf
+            else
+              cp /tmp/redis-preconfig/slave.conf /etc/redis-config.conf
+            fi
+
+            sed -i 's/REDIS_PASSWORD_to_change/'"${REDIS_PASSWORD}"'/g' /etc/redis-config.conf
+          volumeMounts:
+            - name: redis-preconfig
+              mountPath: /tmp/redis-preconfig
+            - name: redis-config
+              mountPath: /etc 
+      containers:
+      - name: redis-client
+        image: redis:alpine
+        command: ["redis-server", "/etc/redis-config.conf"]
+        ports:
+        - containerPort: 6379
+        volumeMounts:
+        - name: redis-data  
+          mountPath: /data
+        - name: redis-config
+          mountPath: /etc 
+      volumes:
+      - name: redis-preconfig
+        configMap:
+          name: redis-cm
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: ["ReadWriteMany"]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 50Mi
+  - metadata:
+      name: redis-config
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 2Mi

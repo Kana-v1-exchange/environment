@@ -32,6 +32,40 @@ services:
     env_file: 
      - envs/.env.redis
   
+  calculator:
+    container_name: 'exchange_calculator'
+    image: exchange_calculator
+    build: 
+      # context: https://github.com/Kana-v1-exchange/calculator.git
+      context: ../calculator
+      dockerfile: Dockerfile
+    env_file: 
+     - envs/.env
+  
+  dashboard:
+    container_name: 'exchnage_dashboard'
+    image: exchange_dashboard
+    build: 
+      # context: https://github.com/Kana-v1-exchange/dashboard.git
+      context: ../dashboard
+      dockerfile: Dockerfile
+    env_file: 
+     - envs/.env
+    ports:
+     - 11111:11111
+  
+  frontend: 
+    container_name: 'exchange_frontend'
+    image: exchange_frontend
+    build: 
+      # context: https://github.com/Kana-v1-exchange/frontend.git
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports: 
+     - 8080:8080
+
+    
+  
   # proxy:
   #   container_name: proxy
   #   build: proxy/
@@ -40,3 +74,4 @@ services:
 
 volumes:
   redis:
+  postgresql:

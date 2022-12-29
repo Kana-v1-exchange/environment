@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: dataaccess
+    namespace: exchange
+spec:
+  selector:
+    matchLabels:
+      app: dataaccess
+  template:
+    metadata:
+      labels:
+        app: dataaccess
+    spec:
+      containers:
+      - name: alpine
+        image: alpine:latest
+        command: ['sleep', 'infinity']
+        volumeMounts:
+        - name: redis-config-pvc-to-access-volume
+          mountPath: /etc
+        envFrom:
+          - secretRef:
+              name: exchange-secrets
+          - configMapRef:
+              name: exchange-cm
+        resources:
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+      volumes:
+      - name: redis-config-pvc-to-access-volume
+        persistentVolumeClaim:
+          claimName: redis-config-redis-statefulset-0

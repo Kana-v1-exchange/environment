@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: exchange-cm
+  namespace: exchange
+data:
+  POSTGRES_HOST: "172.17.0.4"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB_NAME: "exchange"
+  REDIS_HOST: "172.17.0.5"
+  REDIS_PORT: "6379"
+  RMQ_USER: "default_user_EQBWUKGDotoR9pZreSc"
+  RMQ_HOST: "172.17.0.7"
+  RMQ_PORT: "5672"
+  IS_EXCHANGE_IN_CONTAINER: "true"
+  OPERATIONS_PER_USER_LIMIT: "0.8"
+

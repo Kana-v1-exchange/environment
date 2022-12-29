@@ -1,0 +1,9 @@
+apiVersion: rabbitmq.com/v1beta1
+kind: RabbitmqCluster
+metadata:
+  name: rmq
+  namespace: exchange
+  labels:
+    app: rmq
+spec:
+  image: rabbitmq:3-management

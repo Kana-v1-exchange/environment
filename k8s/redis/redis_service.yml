@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: exchange
+  labels:
+    app: redis
+spec:
+  selector:
+    app: redis
+  type: LoadBalancer
+  ports:
+  - port: 6379
+    targetPort: 6379
+    nodePort: 31233
+    protocol: TCP
